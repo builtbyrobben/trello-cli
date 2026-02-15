@@ -44,6 +44,14 @@ func (cmd *CardsListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, cards)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "LIST_ID", "CLOSED"}
+		var rows [][]string
+		for _, c := range cards {
+			rows = append(rows, []string{c.ID, c.Name, c.IDList, fmt.Sprintf("%v", c.Closed)})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(cards) == 0 {
 		fmt.Fprintln(os.Stderr, "No cards found")
@@ -74,6 +82,12 @@ func (cmd *CardsGetCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, card)
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"ID", "NAME", "LIST_ID", "URL", "CLOSED"},
+			[][]string{{card.ID, card.Name, card.IDList, card.URL, fmt.Sprintf("%v", card.Closed)}},
+		)
 	}
 
 	fmt.Printf("ID:     %s\n", card.ID)
@@ -114,6 +128,12 @@ func (cmd *CardsCreateCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, card)
 	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"ID", "NAME", "URL"},
+			[][]string{{card.ID, card.Name, card.URL}},
+		)
+	}
 
 	fmt.Fprintf(os.Stderr, "Created card\n\n")
 	fmt.Printf("ID:   %s\n", card.ID)
@@ -146,6 +166,12 @@ func (cmd *CardsUpdateCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, card)
 	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"ID", "NAME"},
+			[][]string{{card.ID, card.Name}},
+		)
+	}
 
 	fmt.Fprintf(os.Stderr, "Updated card\n\n")
 	fmt.Printf("ID:   %s\n", card.ID)
@@ -172,6 +198,12 @@ func (cmd *CardsMoveCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, card)
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"ID", "NAME", "LIST_ID"},
+			[][]string{{card.ID, card.Name, cmd.List}},
+		)
 	}
 
 	fmt.Fprintf(os.Stderr, "Moved card to list %s\n\n", cmd.List)
@@ -200,6 +232,12 @@ func (cmd *CardsDeleteCmd) Run(ctx context.Context) error {
 			"status":  "success",
 			"message": "Card deleted",
 		})
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"STATUS", "MESSAGE"},
+			[][]string{{"success", "Card deleted"}},
+		)
 	}
 
 	fmt.Fprintln(os.Stderr, "Card deleted")

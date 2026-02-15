@@ -31,6 +31,14 @@ func (cmd *MembersListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, members)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "USERNAME", "FULL_NAME"}
+		var rows [][]string
+		for _, m := range members {
+			rows = append(rows, []string{m.ID, m.Username, m.FullName})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(members) == 0 {
 		fmt.Fprintln(os.Stderr, "No members found")
@@ -59,6 +67,12 @@ func (cmd *MembersMeCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, member)
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"ID", "USERNAME", "FULL_NAME", "URL"},
+			[][]string{{member.ID, member.Username, member.FullName, member.URL}},
+		)
 	}
 
 	fmt.Printf("ID:       %s\n", member.ID)

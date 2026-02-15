@@ -46,6 +46,12 @@ func (cmd *AuthSetKeyCmd) Run(ctx context.Context) error {
 			"message": "API key stored in keyring",
 		})
 	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"STATUS", "MESSAGE"},
+			[][]string{{"success", "API key stored in keyring"}},
+		)
+	}
 
 	fmt.Fprintln(os.Stderr, "API key stored in keyring")
 
@@ -77,6 +83,12 @@ func (cmd *AuthSetTokenCmd) Run(ctx context.Context) error {
 			"status":  "success",
 			"message": "API token stored in keyring",
 		})
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"STATUS", "MESSAGE"},
+			[][]string{{"success", "API token stored in keyring"}},
+		)
 	}
 
 	fmt.Fprintln(os.Stderr, "API token stored in keyring")
@@ -130,35 +142,53 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, status)
 	}
+	if outfmt.IsPlain(ctx) {
+		keyStatus := "not_configured"
+		if envKeyOverride {
+			keyStatus = "env_override"
+		} else if hasKey {
+			keyStatus = "configured"
+		}
+		tokenStatus := "not_configured"
+		if envTokenOverride {
+			tokenStatus = "env_override"
+		} else if hasToken {
+			tokenStatus = "configured"
+		}
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"STORAGE", "KEY_STATUS", "TOKEN_STATUS"},
+			[][]string{{fmt.Sprintf("%s", status["storage_backend"]), keyStatus, tokenStatus}},
+		)
+	}
 
-	fmt.Fprintf(os.Stderr, "Storage: %s\n", status["storage_backend"])
+	fmt.Fprintf(os.Stdout, "Storage: %s\n", status["storage_backend"])
 
 	// API Key status
 	switch {
 	case envKeyOverride:
-		fmt.Fprintln(os.Stderr, "API Key: Using TRELLO_API_KEY environment variable")
+		fmt.Fprintln(os.Stdout, "API Key: Using TRELLO_API_KEY environment variable")
 	case hasKey:
-		fmt.Fprintln(os.Stderr, "API Key: Configured")
+		fmt.Fprintln(os.Stdout, "API Key: Configured")
 
 		if redacted, ok := status["key_redacted"].(string); ok {
-			fmt.Fprintf(os.Stderr, "  Key: %s\n", redacted)
+			fmt.Fprintf(os.Stdout, "  Key: %s\n", redacted)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "API Key: Not configured")
+		fmt.Fprintln(os.Stdout, "API Key: Not configured")
 	}
 
 	// Token status
 	switch {
 	case envTokenOverride:
-		fmt.Fprintln(os.Stderr, "Token: Using TRELLO_TOKEN environment variable")
+		fmt.Fprintln(os.Stdout, "Token: Using TRELLO_TOKEN environment variable")
 	case hasToken:
-		fmt.Fprintln(os.Stderr, "Token: Configured")
+		fmt.Fprintln(os.Stdout, "Token: Configured")
 
 		if redacted, ok := status["token_redacted"].(string); ok {
-			fmt.Fprintf(os.Stderr, "  Token: %s\n", redacted)
+			fmt.Fprintf(os.Stdout, "  Token: %s\n", redacted)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "Token: Not configured")
+		fmt.Fprintln(os.Stdout, "Token: Not configured")
 	}
 
 	if (!hasKey && !envKeyOverride) || (!hasToken && !envTokenOverride) {
@@ -197,6 +227,12 @@ func (cmd *AuthRemoveCmd) Run(ctx context.Context) error {
 			"status":  "success",
 			"message": "All credentials removed",
 		})
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"STATUS", "MESSAGE"},
+			[][]string{{"success", "All credentials removed"}},
+		)
 	}
 
 	fmt.Fprintln(os.Stderr, "All credentials removed")
