@@ -2,8 +2,12 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
+
+	"github.com/builtbyrobben/trello-cli/internal/outfmt"
 )
 
 var (
@@ -15,11 +19,18 @@ var (
 type VersionCmd struct{}
 
 func (cmd *VersionCmd) Run(ctx context.Context) error {
+	if outfmt.IsJSON(ctx) {
+		return json.NewEncoder(os.Stdout).Encode(map[string]string{
+			"version": VersionString(),
+			"commit":  commit,
+			"date":    date,
+			"os":      runtime.GOOS + "/" + runtime.GOARCH,
+		})
+	}
 	fmt.Printf("trello-cli %s\n", VersionString())
 	fmt.Printf("  Commit: %s\n", commit)
 	fmt.Printf("  Built:  %s\n", date)
 	fmt.Printf("  OS:     %s/%s\n", runtime.GOOS, runtime.GOARCH)
-
 	return nil
 }
 
