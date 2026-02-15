@@ -220,7 +220,12 @@ func readCredential(argValue, label string) (string, error) {
 			return "", fmt.Errorf("read %s: %w", label, err)
 		}
 
-		return strings.TrimSpace(string(byteVal)), nil
+		val := strings.TrimSpace(string(byteVal))
+		if val == "" {
+			return "", fmt.Errorf("%s cannot be empty", label)
+		}
+
+		return val, nil
 	}
 
 	byteVal, err := io.ReadAll(os.Stdin)
