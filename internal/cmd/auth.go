@@ -161,7 +161,7 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 		fmt.Fprintln(os.Stderr, "Token: Not configured")
 	}
 
-	if !hasKey && !envKeyOverride || !hasToken && !envTokenOverride {
+	if (!hasKey && !envKeyOverride) || (!hasToken && !envTokenOverride) {
 		fmt.Fprintln(os.Stderr, "\nTo authenticate:")
 
 		if !hasKey && !envKeyOverride {
