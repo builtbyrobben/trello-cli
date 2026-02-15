@@ -11,7 +11,7 @@ import (
 	"github.com/99designs/keyring"
 	"golang.org/x/term"
 
-	"github.com/builtbyrobben/cli-template/internal/config"
+	"github.com/builtbyrobben/trello-cli/internal/config"
 )
 
 type Store interface {
@@ -19,6 +19,10 @@ type Store interface {
 	SetAPIKey(key string) error
 	DeleteAPIKey() error
 	HasKey() (bool, error)
+	GetToken() (string, error)
+	SetToken(token string) error
+	DeleteToken() error
+	HasToken() (bool, error)
 }
 
 type KeyringStore struct {
@@ -26,17 +30,19 @@ type KeyringStore struct {
 }
 
 const (
-	apiKeyKey              = "api_key"
-	keyringPasswordEnv     = "PLACEHOLDER_CLI_KEYRING_PASS"
-	keyringBackendEnv      = "PLACEHOLDER_CLI_KEYRING_BACKEND"
-	keyringOpenTimeout     = 5 * time.Second
+	apiKeyKey          = "api_key"
+	tokenKey           = "token"
+	keyringPasswordEnv = "TRELLO_CLI_KEYRING_PASS"    //nolint:gosec // env var name, not a credential
+	keyringBackendEnv  = "TRELLO_CLI_KEYRING_BACKEND" //nolint:gosec // env var name, not a credential
+	keyringOpenTimeout = 5 * time.Second
 )
 
 var (
-	errMissingAPIKey      = errors.New("missing API key")
-	errNoTTY              = errors.New("no TTY available for keyring file backend password prompt")
+	errMissingAPIKey         = errors.New("missing API key")
+	errMissingToken          = errors.New("missing token")
+	errNoTTY                 = errors.New("no TTY available for keyring file backend password prompt")
 	errInvalidKeyringBackend = errors.New("invalid keyring backend")
-	errKeyringTimeout     = errors.New("keyring connection timed out")
+	errKeyringTimeout        = errors.New("keyring connection timed out")
 )
 
 type KeyringBackendInfo struct {
@@ -56,7 +62,6 @@ func ResolveKeyringBackendInfo() (KeyringBackendInfo, error) {
 		return KeyringBackendInfo{Value: v, Source: keyringBackendSourceEnv}, nil
 	}
 
-	// Could read from config file here if needed
 	return KeyringBackendInfo{Value: keyringBackendAuto, Source: keyringBackendSourceDefault}, nil
 }
 
@@ -125,7 +130,7 @@ func openKeyring() (keyring.Keyring, error) {
 	}
 
 	cfg := keyring.Config{
-		ServiceName:             config.AppName,
+		ServiceName:              config.AppName,
 		KeychainTrustApplication: false,
 		AllowedBackends:          backends,
 		FileDir:                  keyringDir,
@@ -166,7 +171,7 @@ func openKeyringWithTimeout(cfg keyring.Config, timeout time.Duration) (keyring.
 		return res.ring, nil
 	case <-time.After(timeout):
 		return nil, fmt.Errorf("%w after %v (D-Bus SecretService may be unresponsive); "+
-			"set PLACEHOLDER_CLI_KEYRING_BACKEND=file and PLACEHOLDER_CLI_KEYRING_PASS=<password> to use encrypted file storage instead",
+			"set TRELLO_CLI_KEYRING_BACKEND=file and TRELLO_CLI_KEYRING_PASS=<password> to use encrypted file storage instead",
 			errKeyringTimeout, timeout)
 	}
 }
@@ -219,49 +224,55 @@ func (s *KeyringStore) HasKey() (bool, error) {
 		if errors.Is(err, keyring.ErrKeyNotFound) {
 			return false, nil
 		}
-		return false, err
+
+		return false, fmt.Errorf("check API key: %w", err)
 	}
+
 	return true, nil
 }
 
-// GetSecret retrieves a generic secret by key.
-func GetSecret(key string) ([]byte, error) {
-	key = strings.TrimSpace(key)
-	if key == "" {
-		return nil, errors.New("missing secret key")
-	}
-
-	ring, err := openKeyring()
+func (s *KeyringStore) GetToken() (string, error) {
+	item, err := s.ring.Get(tokenKey)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("read token: %w", err)
 	}
 
-	item, err := ring.Get(key)
-	if err != nil {
-		return nil, fmt.Errorf("read secret: %w", err)
-	}
-
-	return item.Data, nil
+	return string(item.Data), nil
 }
 
-// SetSecret stores a generic secret by key.
-func SetSecret(key string, value []byte) error {
-	key = strings.TrimSpace(key)
-	if key == "" {
-		return errors.New("missing secret key")
+func (s *KeyringStore) SetToken(token string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return errMissingToken
 	}
 
-	ring, err := openKeyring()
-	if err != nil {
-		return err
-	}
-
-	if err := ring.Set(keyring.Item{
-		Key:  key,
-		Data: value,
+	if err := s.ring.Set(keyring.Item{
+		Key:  tokenKey,
+		Data: []byte(token),
 	}); err != nil {
-		return fmt.Errorf("store secret: %w", err)
+		return fmt.Errorf("store token: %w", err)
 	}
 
 	return nil
+}
+
+func (s *KeyringStore) DeleteToken() error {
+	if err := s.ring.Remove(tokenKey); err != nil && !errors.Is(err, keyring.ErrKeyNotFound) {
+		return fmt.Errorf("delete token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *KeyringStore) HasToken() (bool, error) {
+	_, err := s.ring.Get(tokenKey)
+	if err != nil {
+		if errors.Is(err, keyring.ErrKeyNotFound) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("check token: %w", err)
+	}
+
+	return true, nil
 }
