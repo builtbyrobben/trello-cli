@@ -57,3 +57,5 @@ brews:
     homepage: "https://github.com/builtbyrobben/trello-cli"
     description: "Trello board and card management CLI"
     license: "MIT"
+    test: |
+      system "#{bin}/trello-cli", "--version"
