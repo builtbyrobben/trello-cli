@@ -2,25 +2,26 @@
 
 ## Project Structure
 
-- `cmd/placeholder/`: CLI entrypoint
+- `cmd/trello/`: CLI entrypoint
 - `internal/`: implementation packages
   - `cmd/`: Kong CLI commands
-  - `api/`: HTTP client with retry/rate limiting
-  - `secrets/`: Keyring-backed credential storage
+  - `api/`: HTTP client with query param auth support
+  - `trello/`: Trello API client and types
+  - `secrets/`: Keyring-backed credential storage (dual: API key + token)
   - `outfmt/`: JSON/plain output formatting
   - `errfmt/`: User-friendly error formatting
   - `config/`: Platform-aware config paths
 
 ## Build, Test, and Development Commands
 
-- `make` / `make build`: build `bin/placeholder-cli`
+- `make` / `make build`: build `bin/trello-cli`
 - `make tools`: install pinned dev tools into `.tools/`
 - `make fmt` / `make lint` / `make test` / `make ci`: format, lint, test, full local gate
 - Hooks: `lefthook install` enables pre-commit checks
 
 ## Coding Style & Naming Conventions
 
-- Formatting: `make fmt` (`goimports` local prefix `github.com/builtbyrobben/cli-template` + `gofumpt`)
+- Formatting: `make fmt` (`goimports` local prefix `github.com/builtbyrobben/trello-cli` + `gofumpt`)
 - Output: keep stdout parseable (`--json` / `--plain`); send human hints/progress to stderr
 
 ## Testing Guidelines

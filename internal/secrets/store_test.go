@@ -5,6 +5,8 @@ import (
 )
 
 func TestNormalizeKeyringBackend(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		input    string
 		expected string
@@ -22,6 +24,8 @@ func TestNormalizeKeyringBackend(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
+
 			result := normalizeKeyringBackend(tt.input)
 			if result != tt.expected {
 				t.Errorf("normalizeKeyringBackend(%q) = %q, want %q", tt.input, result, tt.expected)
@@ -31,22 +35,24 @@ func TestNormalizeKeyringBackend(t *testing.T) {
 }
 
 func TestAllowedBackends(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
-		name     string
-		info     KeyringBackendInfo
-		wantLen  int
-		wantErr  bool
+		name    string
+		info    KeyringBackendInfo
+		wantLen int
+		wantErr bool
 	}{
 		{
 			name:    "auto backend",
 			info:    KeyringBackendInfo{Value: "auto", Source: "default"},
-			wantLen: 0, // nil slice
+			wantLen: 0,
 			wantErr: false,
 		},
 		{
 			name:    "empty backend",
 			info:    KeyringBackendInfo{Value: "", Source: "default"},
-			wantLen: 0, // nil slice
+			wantLen: 0,
 			wantErr: false,
 		},
 		{
@@ -70,17 +76,22 @@ func TestAllowedBackends(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			backends, err := allowedBackends(tt.info)
 			if tt.wantErr {
 				if err == nil {
 					t.Error("expected error, got nil")
 				}
+
 				return
 			}
+
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 				return
 			}
+
 			if tt.wantLen == 0 && backends != nil {
 				t.Errorf("expected nil slice, got %d backends", len(backends))
 			} else if tt.wantLen > 0 && len(backends) != tt.wantLen {
@@ -91,45 +102,49 @@ func TestAllowedBackends(t *testing.T) {
 }
 
 func TestShouldForceFileBackend(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
-		name       string
-		goos       string
+		name        string
+		goos        string
 		backendInfo KeyringBackendInfo
-		dbusAddr   string
-		want       bool
+		dbusAddr    string
+		want        bool
 	}{
 		{
-			name:       "Linux without D-Bus",
-			goos:       "linux",
+			name:        "Linux without D-Bus",
+			goos:        "linux",
 			backendInfo: KeyringBackendInfo{Value: "auto", Source: "default"},
-			dbusAddr:   "",
-			want:       true,
+			dbusAddr:    "",
+			want:        true,
 		},
 		{
-			name:       "Linux with D-Bus",
-			goos:       "linux",
+			name:        "Linux with D-Bus",
+			goos:        "linux",
 			backendInfo: KeyringBackendInfo{Value: "auto", Source: "default"},
-			dbusAddr:   "unix:path=/run/user/1000/bus",
-			want:       false,
+			dbusAddr:    "unix:path=/run/user/1000/bus",
+			want:        false,
 		},
 		{
-			name:       "macOS without D-Bus",
-			goos:       "darwin",
+			name:        "macOS without D-Bus",
+			goos:        "darwin",
 			backendInfo: KeyringBackendInfo{Value: "auto", Source: "default"},
-			dbusAddr:   "",
-			want:       false,
+			dbusAddr:    "",
+			want:        false,
 		},
 		{
-			name:       "Linux with explicit keychain backend",
-			goos:       "linux",
+			name:        "Linux with explicit keychain backend",
+			goos:        "linux",
 			backendInfo: KeyringBackendInfo{Value: "keychain", Source: "env"},
-			dbusAddr:   "",
-			want:       false,
+			dbusAddr:    "",
+			want:        false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := shouldForceFileBackend(tt.goos, tt.backendInfo, tt.dbusAddr)
 			if result != tt.want {
 				t.Errorf("shouldForceFileBackend() = %v, want %v", result, tt.want)

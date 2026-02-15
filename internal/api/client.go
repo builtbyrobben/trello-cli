@@ -15,6 +15,7 @@ type Client struct {
 	baseURL    string
 	apiKey     string
 	userAgent  string
+	queryAuth  map[string]string
 }
 
 type ClientOption func(*Client)
@@ -37,14 +38,21 @@ func WithTimeout(timeout time.Duration) ClientOption {
 	}
 }
 
+// WithQueryAuth sets authentication parameters as query params instead of headers.
+func WithQueryAuth(params map[string]string) ClientOption {
+	return func(c *Client) {
+		c.queryAuth = params
+	}
+}
+
 func NewClient(apiKey string, opts ...ClientOption) *Client {
 	c := &Client{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 		apiKey:    apiKey,
-		userAgent: "placeholder-cli/1.0",
-		baseURL:   "https://api.example.com",
+		userAgent: "trello-cli/1.0",
+		baseURL:   "https://api.trello.com/1",
 	}
 
 	for _, opt := range opts {
@@ -63,15 +71,18 @@ type Request struct {
 
 func (c *Client) Do(ctx context.Context, req Request) (*http.Response, error) {
 	var bodyReader io.Reader
+
 	if req.Body != nil {
 		bodyBytes, err := json.Marshal(req.Body)
 		if err != nil {
 			return nil, fmt.Errorf("marshal request body: %w", err)
 		}
+
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
 
 	url := c.baseURL + req.Path
+
 	httpReq, err := http.NewRequestWithContext(ctx, req.Method, url, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
@@ -81,8 +92,16 @@ func (c *Client) Do(ctx context.Context, req Request) (*http.Response, error) {
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("User-Agent", c.userAgent)
 
-	// Set API key header (override in specific CLI implementations)
-	if c.apiKey != "" {
+	// Add query param auth if configured
+	if len(c.queryAuth) > 0 {
+		q := httpReq.URL.Query()
+
+		for k, v := range c.queryAuth {
+			q.Set(k, v)
+		}
+
+		httpReq.URL.RawQuery = q.Encode()
+	} else if c.apiKey != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
 	}
 
@@ -168,12 +187,17 @@ func parseAPIError(resp *http.Response) error {
 		if msg == "" {
 			msg = apiErr.Error
 		}
+
 		if msg != "" {
 			return &APIError{StatusCode: resp.StatusCode, Message: msg}
 		}
 	}
 
-	// Fallback to status text
+	// Fallback: use body text if short enough, otherwise status text
+	if len(body) > 0 && len(body) < 200 {
+		return &APIError{StatusCode: resp.StatusCode, Message: string(body)}
+	}
+
 	return &APIError{
 		StatusCode: resp.StatusCode,
 		Message:    http.StatusText(resp.StatusCode),
