@@ -30,6 +30,14 @@ func (cmd *LabelsListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, labels)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "COLOR", "NAME"}
+		var rows [][]string
+		for _, l := range labels {
+			rows = append(rows, []string{l.ID, l.Color, l.Name})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(labels) == 0 {
 		fmt.Fprintln(os.Stderr, "No labels found")

@@ -29,6 +29,14 @@ func (cmd *BoardsListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, boards)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "CLOSED"}
+		var rows [][]string
+		for _, b := range boards {
+			rows = append(rows, []string{b.ID, b.Name, fmt.Sprintf("%v", b.Closed)})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(boards) == 0 {
 		fmt.Fprintln(os.Stderr, "No boards found")
@@ -59,6 +67,12 @@ func (cmd *BoardsGetCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, board)
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"ID", "NAME", "URL", "CLOSED"},
+			[][]string{{board.ID, board.Name, board.URL, fmt.Sprintf("%v", board.Closed)}},
+		)
 	}
 
 	fmt.Printf("ID:   %s\n", board.ID)

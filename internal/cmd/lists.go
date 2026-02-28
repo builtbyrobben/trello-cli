@@ -31,6 +31,14 @@ func (cmd *ListsListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, lists)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "CLOSED"}
+		var rows [][]string
+		for _, l := range lists {
+			rows = append(rows, []string{l.ID, l.Name, fmt.Sprintf("%v", l.Closed)})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(lists) == 0 {
 		fmt.Fprintln(os.Stderr, "No lists found")
@@ -62,6 +70,12 @@ func (cmd *ListsCreateCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, list)
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout,
+			[]string{"ID", "NAME"},
+			[][]string{{list.ID, list.Name}},
+		)
 	}
 
 	fmt.Fprintf(os.Stderr, "Created list\n\n")
