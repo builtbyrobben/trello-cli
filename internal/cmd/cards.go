@@ -202,7 +202,7 @@ func (cmd *CardsMoveCmd) Run(ctx context.Context) error {
 	if outfmt.IsPlain(ctx) {
 		return outfmt.WritePlain(os.Stdout,
 			[]string{"ID", "NAME", "LIST_ID"},
-			[][]string{{card.ID, card.Name, cmd.List}},
+			[][]string{{card.ID, card.Name, card.IDList}},
 		)
 	}
 
